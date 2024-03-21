@@ -197,7 +197,7 @@ void TreeBillboardsApp::CreateItem(const char* item, XMMATRIX p, XMMATRIX q,XMMA
     auto RightWall = std::make_unique<RenderItem>();
     XMStoreFloat4x4(&RightWall->World, p * q * r);
     RightWall->ObjCBIndex = ObjIndex;
-    RightWall->Mat = mMaterials[material].get();//"wirefence"
+    RightWall->Mat = mMaterials[material].get();// "Wood"
     RightWall->Geo = mGeometries["boxGeo"].get();
     
     RightWall->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -213,7 +213,7 @@ void TreeBillboardsApp::CreateItemT(const char* item, XMMATRIX p, XMMATRIX q, XM
 	auto RightWall = std::make_unique<RenderItem>();
 	XMStoreFloat4x4(&RightWall->World, p * q * r);
 	RightWall->ObjCBIndex = ObjIndex;
-	RightWall->Mat = mMaterials[material].get();//"wirefence"
+	RightWall->Mat = mMaterials[material].get();// "Wood"
 	RightWall->Geo = mGeometries["boxGeo"].get();
 
 	RightWall->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -522,26 +522,34 @@ void TreeBillboardsApp::UpdateMainPassCB(const GameTimer& gt)
 	XMStoreFloat4x4(&mMainPassCB.ViewProj, XMMatrixTranspose(viewProj));
 	XMStoreFloat4x4(&mMainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
 	mMainPassCB.EyePosW = mEyePos;
+
+
 	mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
 	mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
+
 	mMainPassCB.NearZ = 1.0f;
 	mMainPassCB.FarZ = 1000.0f;
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
+
+
 	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
 	mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
 	mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
 	mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
 	mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+
 	mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
 	mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
-	mMainPassCB.Lights[3].Position = { 0.0f, 10.0f, 0.0f };
-	mMainPassCB.Lights[3].Direction = { 5.0f, 0.0f, 0.0f };
-	mMainPassCB.Lights[3].Strength = { 0.35f, 0.0f, 100.05f };
-	mMainPassCB.Lights[3].SpotPower = 2.0;
 
-	mMainPassCB.Lights[4].Position = { 20.0f, 10.0f, -30.0f };
-	mMainPassCB.Lights[4].Strength = { 1000.0f, 1.0f, 0.05f };
+	mMainPassCB.Lights[3].Position = { 0.0f, 20.0f, 0.0f };
+	mMainPassCB.Lights[3].Direction = { 1.0f, 0.0f, 1.0f };
+	mMainPassCB.Lights[3].Strength = { 1.0f, 20.0f, 200.05f };
+	mMainPassCB.Lights[3].SpotPower = 1.0;
+
+	mMainPassCB.Lights[4].Position = { -7.0f, 10.0f, 0.0f };
+	mMainPassCB.Lights[4].Direction = { 1.0f, 0.0f, 0.0f };
+	mMainPassCB.Lights[4].Strength = { 3000.0f, 0.0f, 0.05f };
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
@@ -638,12 +646,12 @@ void TreeBillboardsApp::LoadTextures()
 		mCommandList.Get(), torusTex->Filename.c_str(),
 		torusTex->Resource, torusTex->UploadHeap));
 
-	auto triprisTex = std::make_unique<Texture>();
-	triprisTex->Name = "triprisTex";
-	triprisTex->Filename = L"../Texture/WireFence.dds";
+	auto woodTex = std::make_unique<Texture>();
+	woodTex->Name = "woodTex";
+	woodTex->Filename = L"../Texture/Wood.dds";
 	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
-		mCommandList.Get(), triprisTex->Filename.c_str(),
-		triprisTex->Resource, triprisTex->UploadHeap));
+		mCommandList.Get(), woodTex->Filename.c_str(),
+		woodTex->Resource, woodTex->UploadHeap));
 
 	auto pyramidTex = std::make_unique<Texture>();
 	pyramidTex->Name = "pyramidTex";
@@ -682,7 +690,7 @@ void TreeBillboardsApp::LoadTextures()
 	mTextures[sandTex->Name] = std::move(sandTex);
 	mTextures[diamondTex->Name] = std::move(diamondTex);
 	mTextures[torusTex->Name] = std::move(torusTex);
-	mTextures[triprisTex->Name] = std::move(triprisTex);
+	mTextures[woodTex->Name] = std::move(woodTex);
 	mTextures[pyramidTex->Name] = std::move(pyramidTex);
 	mTextures[ballTex->Name] = std::move(ballTex);
 	mTextures[stairTex->Name] = std::move(stairTex);
@@ -753,7 +761,7 @@ void TreeBillboardsApp::BuildDescriptorHeaps()
 	auto sandTex = mTextures["sandTex"]->Resource;
 	auto diamondTex = mTextures["diamondTex"]->Resource;
 	auto torusTex = mTextures["torusTex"]->Resource;
-	auto triprisTex = mTextures["triprisTex"]->Resource;
+	auto woodTex = mTextures["woodTex"]->Resource;
 	auto pyramidTex = mTextures["pyramidTex"]->Resource;
 	auto ballTex = mTextures["ballTex"]->Resource;
 	auto stairTex = mTextures["stairTex"]->Resource;
@@ -804,8 +812,8 @@ void TreeBillboardsApp::BuildDescriptorHeaps()
 	// next descriptor
 	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
-	srvDesc.Format = triprisTex->GetDesc().Format;
-	md3dDevice->CreateShaderResourceView(triprisTex.Get(), &srvDesc, hDescriptor);
+	srvDesc.Format = woodTex->GetDesc().Format;
+	md3dDevice->CreateShaderResourceView(woodTex.Get(), &srvDesc, hDescriptor);
 	// next descriptor
 	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
@@ -1391,13 +1399,13 @@ void TreeBillboardsApp::BuildMaterials()
 	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	water->Roughness = 0.0f;
 	i++;
-	auto wirefence = std::make_unique<Material>();
-	wirefence->Name = "wirefence";
-	wirefence->MatCBIndex = i;
-	wirefence->DiffuseSrvHeapIndex = i;
-	wirefence->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	wirefence->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	wirefence->Roughness = 0.25f;
+	auto Wood = std::make_unique<Material>();
+	Wood->Name =  "Wood";
+	Wood->MatCBIndex = i;
+	Wood->DiffuseSrvHeapIndex = i;
+	Wood->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	Wood->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
+	Wood->Roughness = 0.25f;
 	i++;
 	auto stone = std::make_unique<Material>();
 	stone->Name = "stone";
@@ -1431,13 +1439,13 @@ void TreeBillboardsApp::BuildMaterials()
 	torus->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
 	torus->Roughness = 0.9f;
 	i++;
-	auto tripris = std::make_unique<Material>();
-	tripris->Name = "tripris";
-	tripris->MatCBIndex = i;
-	tripris->DiffuseSrvHeapIndex = i;
-	tripris->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	tripris->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	tripris->Roughness = 0.9f;
+	auto wood = std::make_unique<Material>();
+	wood->Name = "wood";
+	wood->MatCBIndex = i;
+	wood->DiffuseSrvHeapIndex = i;
+	wood->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	wood->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
+	wood->Roughness = 0.9f;
 	i++;
 	auto pyramid = std::make_unique<Material>();
 	pyramid->Name = "pyramid";
@@ -1475,12 +1483,12 @@ void TreeBillboardsApp::BuildMaterials()
 
 	mMaterials["grass"] = std::move(grass);
 	mMaterials["water"] = std::move(water);
-	mMaterials["wirefence"] = std::move(wirefence);
+	mMaterials[ "Wood"] = std::move(Wood);
 	mMaterials["stone"] = std::move(stone);
 	mMaterials["sand"] = std::move(sand);
 	mMaterials["diamond"] = std::move(diamond);
 	mMaterials["torus"] = std::move(torus);
-	mMaterials["tripris"] = std::move(tripris);
+	mMaterials["wood"] = std::move(wood);
 	mMaterials["pyramid"] = std::move(pyramid);
 	mMaterials["ball"] = std::move(ball);
 	mMaterials["stair"] = std::move(stair);
@@ -1522,127 +1530,99 @@ void TreeBillboardsApp::BuildRenderItems()
 	mRitemLayer[(int)RenderLayer::Opaque].push_back(gridRitem.get());
 	//UINT objCBIndex = 0;
 	objCBIndex++;
-	CreateItem("box", XMMatrixScaling(30.0f, 1.0f, 1.0f), XMMatrixTranslation(0.0f, 10.0f, 25.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//back wall
-	objCBIndex++;
-	CreateItem("box", XMMatrixScaling(14.0f, 1.0f, 1.0f), XMMatrixTranslation(-16.0f, 10.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//front left wall
-	objCBIndex++;
-	CreateItem("box", XMMatrixScaling(14.0f, 1.0f, 1.0f), XMMatrixTranslation(16.0f, 10.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//front right wall
-	objCBIndex++;
-	CreateItem("box", XMMatrixScaling(1.0f, 1.0f, 28.0f), XMMatrixTranslation(25.0f, 10.0f, 5.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//left wall
-	objCBIndex++;
-	CreateItem("box", XMMatrixScaling(1.0f, 1.0f, 28.0f), XMMatrixTranslation(-25.0f, 10.0f, 5.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//right wall
-	objCBIndex++;
-
-	CreateItem("cylinder", XMMatrixScaling(5.0f, 5.5f, 5.0f), XMMatrixTranslation(25.0f, 10.0f, 25.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "stone");// back right 
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(5.0f, 5.5f, 5.0f), XMMatrixTranslation(-25.0f, 10.0f, 25.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "stone");// back left 
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(5.0f, 5.5f, 5.0f), XMMatrixTranslation(25.0f, 10.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "stone");// back right 
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(5.0f, 5.5f, 5.0f), XMMatrixTranslation(-25.0f, 10.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "stone");// back left 
 
 
-
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-5.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//Back
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-3.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-1.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(3.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(5.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//
+	
+	CreateItem("box", XMMatrixScaling(10.0f, 1.0f, 14.0f), XMMatrixTranslation(0.0f, 0.0f, 0.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");//front left wall
 	objCBIndex++;
 
 
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-5.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");// Front
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-5.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");//Back
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-3.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");//
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-3.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");//
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-1.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");// 
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-1.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");//
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(3.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");// 
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(3.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");//
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(5.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");// 
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(5.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");//
+	objCBIndex++;
+
+
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-5.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");// Front
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-3.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");//
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-1.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");// 
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(3.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");// 
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(5.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");// 
 	objCBIndex++;
 
 
 
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");// Right 
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");// Right 
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -7.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -7.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -5.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -5.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -3.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -3.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -1.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, -1.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 1.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 1.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 3.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 3.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 5.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 5.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 7.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 7.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-
-
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");// Left 
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -7.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -5.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -3.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -1.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 1.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 3.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 5.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 7.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
-	objCBIndex++;
-	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "wirefence");
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(7.0f, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
 
 
-
-
-
-
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");// Left 
 	objCBIndex++;
-	CreateItem("cone", XMMatrixScaling(4.0f, 5.5f, 4.0f), XMMatrixTranslation(25.0f, 20.0f, 25.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "sand");// back right 
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cone", XMMatrixScaling(4.0f, 5.5f, 4.0f), XMMatrixTranslation(-25.0f, 20.0f, 25.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "sand");// back left 
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -7.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cone", XMMatrixScaling(4.0f, 5.5f, 4.0f), XMMatrixTranslation(25.0f, 20.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "sand");// back right 
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -5.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
-	CreateItem("cone", XMMatrixScaling(4.0f, 5.5f, 4.0f), XMMatrixTranslation(-25.0f, 20.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "sand");// back right 
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -3.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, -1.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 1.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 3.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 5.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 7.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
+	objCBIndex++;
+	CreateItem("cylinder", XMMatrixScaling(1.0f, 2.2f, 1.0f), XMMatrixTranslation(-7, 10.0f, 9.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");
 	objCBIndex++;
 
 
 
-	CreateItem("diamond", XMMatrixScaling(2.0f, 4.0f, 2.0f), XMMatrixTranslation(25.0f, 25.0f, 25.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "diamond");// back right 
+	//CreateItem("cone", XMMatrixScaling(4.0f, 5.5f, 4.0f), XMMatrixTranslation(-25.0f, 20.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "sand");// back right 
+	//objCBIndex++;
+
+
+	CreateItemT("triangularPrism", XMMatrixScaling(5.0f, 5.0f, 5.0f), XMMatrixTranslation(0.0f, 38.0f, 0.0f), XMMatrixRotationRollPitchYaw(0.0f, 0.f, 0.0f), objCBIndex, "wood");// back left 
 	objCBIndex++;
-	CreateItem("diamond", XMMatrixScaling(2.0f, 4.0f, 2.0f), XMMatrixTranslation(-25.0f, 25.0f, 25.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "diamond");// back left 
-	objCBIndex++;
-	CreateItem("diamond", XMMatrixScaling(2.0f, 4.0f, 2.0f), XMMatrixTranslation(25.0f, 25.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "diamond");// back right 
-	objCBIndex++;
-	CreateItem("diamond", XMMatrixScaling(2.0f, 4.0f, 2.0f), XMMatrixTranslation(-25.0f, 25.0f, -18.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "diamond");// back right 
+
+	CreateItem("diamond", XMMatrixScaling(2.0f, 4.0f, 2.0f), XMMatrixTranslation(0.0f, 32.0f, 0.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "diamond");// back right 
 	objCBIndex++;
 
 
-	CreateItem("sphere", XMMatrixScaling(5.0f, 5.0f, 5.0f), XMMatrixTranslation(0.0f, 17.0f, 0.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "ball");// back left 
+	CreateItem("sphere", XMMatrixScaling(5.0f, 5.0f, 5.0f), XMMatrixTranslation(0.0f, 25.0f, 0.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "ball");// back left 
 	objCBIndex++;
 
 
@@ -1650,15 +1630,15 @@ void TreeBillboardsApp::BuildRenderItems()
 	objCBIndex++;
 
 
-	CreateItem("wedge", XMMatrixScaling(11.0f, 5.0f, 10.0f), XMMatrixTranslation(0.0f, 7.0f, -22.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "stair");// back left 
+	CreateItem("wedge", XMMatrixScaling(7.0f, 3.0f, 10.0f), XMMatrixTranslation(0.0f, 7.0f, -15.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "stair");// back left 
 	objCBIndex++;
 
 
-	CreateItemT("triangularPrism", XMMatrixScaling(5.0f, 5.0f, 5.0f), XMMatrixTranslation(7.0f, -20.0f, -30.0f), XMMatrixRotationRollPitchYaw( 0.0f, 0.f, XM_PIDIV2), objCBIndex, "tripris");// back left 
+	CreateItem("torus", XMMatrixScaling(7.0f, 1.0f, 7.0f), XMMatrixTranslation(0.0f, 25.0f, 0.0f), XMMatrixRotationRollPitchYaw(0.0f, 0.f, 0.0f), objCBIndex, "sand");// back left 
 	objCBIndex++;
 
-	CreateItem("torus", XMMatrixScaling(3.0f, 3.0f, 3.0f), XMMatrixTranslation(19.8f, 12.0f, -30.0f), XMMatrixRotationRollPitchYaw(0.0f, 0.f, 0.0f), objCBIndex, "torus");// back left 
-	objCBIndex++;
+
+
 
 	auto treeSpritesRitem = std::make_unique<RenderItem>();
 	treeSpritesRitem->World = MathHelper::Identity4x4();
