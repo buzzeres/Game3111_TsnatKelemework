@@ -547,9 +547,9 @@ void TreeBillboardsApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.Lights[3].Strength = { 1.0f, 20.0f, 200.05f };
 	mMainPassCB.Lights[3].SpotPower = 1.0;
 
-	mMainPassCB.Lights[4].Position = { -7.0f, 10.0f, 0.0f };
+	mMainPassCB.Lights[4].Position = { -7.0f, 42.0f, 0.0f };
 	mMainPassCB.Lights[4].Direction = { 1.0f, 0.0f, 0.0f };
-	mMainPassCB.Lights[4].Strength = { 3000.0f, 0.0f, 0.05f };
+	mMainPassCB.Lights[4].Strength = { 2000.0f, 10000.0f, 0.05f };
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
@@ -1530,10 +1530,10 @@ void TreeBillboardsApp::BuildRenderItems()
 	mRitemLayer[(int)RenderLayer::Opaque].push_back(gridRitem.get());
 	//UINT objCBIndex = 0;
 	objCBIndex++;
-
-
 	
 	CreateItem("box", XMMatrixScaling(10.0f, 1.0f, 14.0f), XMMatrixTranslation(0.0f, 0.0f, 0.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex,  "Wood");//front left wall
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(11.0f, 1.0f, 15.0f), XMMatrixTranslation(0.0f, -1.0f, 0.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//front left wall
 	objCBIndex++;
 
 
