@@ -204,8 +204,8 @@ float4 PS(GeoOut pin) : SV_Target
     float4 litColor = ambient + directLight;
 
 #ifdef FOG
-	float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
-	litColor = lerp(litColor, gFogColor, fogAmount);
+	//float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
+	//litColor = lerp(litColor, gFogColor, fogAmount);
 #endif
 
     // Common convention to take alpha from diffuse albedo.

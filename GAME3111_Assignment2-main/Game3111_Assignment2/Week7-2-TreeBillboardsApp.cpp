@@ -1219,7 +1219,7 @@ void TreeBillboardsApp::BuildTreeSpritesGeometry()
 	std::array<TreeSpriteVertex, 16> vertices;
 	for(UINT i = 0; i < treeCount; ++i)
 	{
-		float x = MathHelper::RandF(-30.0f, 40.0f);
+		float x = MathHelper::RandF(-30.0f, 80.0f);
 		float z = MathHelper::RandF(-45.0f, -25.0f);
 		float y = GetHillsHeight(x, z);
 
