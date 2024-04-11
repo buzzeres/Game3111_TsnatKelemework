@@ -1,18 +1,12 @@
-/** @file Week7-2-TreeBillboardsApp.cpp
- *  @brief Tree Billboarding Demo
- *   Adding Billboarding to our previous Hills, Mountain, Crate, and Wave Demo
- *
- *   Controls:
- *   Hold the left mouse button down and move the mouse to rotate.
- *   Hold the right mouse button down and move the mouse to zoom in and out.
- *
- *  @author Hooman Salamat
- */
+//***************************************************************************************
+// TreeBillboardsApp.cpp 
+//***************************************************************************************
 
 #include "../Common/d3dApp.h"
 #include "../Common/MathHelper.h"
 #include "../Common/UploadBuffer.h"
 #include "../Common/GeometryGenerator.h"
+#include "../Common/Camera.h"
 #include "FrameResource.h"
 #include "Waves.h"
 
@@ -30,11 +24,12 @@ const int gNumFrameResources = 3;
 struct RenderItem
 {
 	RenderItem() = default;
-
-    // World matrix of the shape that describes the object's local space
-    // relative to the world space, which defines the position, orientation,
-    // and scale of the object in the world.
-    XMFLOAT4X4 World = MathHelper::Identity4x4();
+	//RenderItem(const RenderItem& rhs) = delete;
+	BoundingBox Bounds;
+	// World matrix of the shape that describes the object's local space
+	// relative to the world space, which defines the position, orientation,
+	// and scale of the object in the world.
+	XMFLOAT4X4 World = MathHelper::Identity4x4();
 
 	XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
 
@@ -50,13 +45,13 @@ struct RenderItem
 	Material* Mat = nullptr;
 	MeshGeometry* Geo = nullptr;
 
-    // Primitive topology.
-    D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	// Primitive topology.
+	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-    // DrawIndexedInstanced parameters.
-    UINT IndexCount = 0;
-    UINT StartIndexLocation = 0;
-    int BaseVertexLocation = 0;
+	// DrawIndexedInstanced parameters.
+	UINT IndexCount = 0;
+	UINT StartIndexLocation = 0;
+	int BaseVertexLocation = 0;
 };
 
 enum class RenderLayer : int
@@ -71,59 +66,62 @@ enum class RenderLayer : int
 class TreeBillboardsApp : public D3DApp
 {
 public:
-    TreeBillboardsApp(HINSTANCE hInstance);
-    TreeBillboardsApp(const TreeBillboardsApp& rhs) = delete;
-    TreeBillboardsApp& operator=(const TreeBillboardsApp& rhs) = delete;
-    ~TreeBillboardsApp();
+	TreeBillboardsApp(HINSTANCE hInstance);
+	TreeBillboardsApp(const TreeBillboardsApp& rhs) = delete;
+	TreeBillboardsApp& operator=(const TreeBillboardsApp& rhs) = delete;
+	~TreeBillboardsApp();
 
-    virtual bool Initialize()override;
+	virtual bool Initialize()override;
 
 private:
-    virtual void OnResize()override;
-    virtual void Update(const GameTimer& gt)override;
-    virtual void Draw(const GameTimer& gt)override;
+	virtual void OnResize()override;
+	virtual void Update(const GameTimer& gt)override;
+	virtual void Draw(const GameTimer& gt)override;
 
-    virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
-    virtual void OnMouseUp(WPARAM btnState, int x, int y)override;
-    virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
+	virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
+	virtual void OnMouseUp(WPARAM btnState, int x, int y)override;
+	virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
 
-    void OnKeyboardInput(const GameTimer& gt);
+	void OnKeyboardInput(const GameTimer& gt);
 	void UpdateCamera(const GameTimer& gt);
 	void AnimateMaterials(const GameTimer& gt);
 	void UpdateObjectCBs(const GameTimer& gt);
 	void UpdateMaterialCBs(const GameTimer& gt);
 	void UpdateMainPassCB(const GameTimer& gt);
-	void UpdateWaves(const GameTimer& gt); 
+	void UpdateWaves(const GameTimer& gt);
 
 	void LoadTextures();
-    void BuildRootSignature();
+	void BuildRootSignature();
 	void BuildDescriptorHeaps();
-    void BuildShadersAndInputLayouts();
-    void BuildLandGeometry();
-    void BuildWavesGeometry();
+	void BuildShadersAndInputLayouts();
+	void BuildLandGeometry();
+	void BuildWavesGeometry();
 	void BuildBoxGeometry();
 	void BuildTreeSpritesGeometry();
-    void BuildPSOs();
-    void BuildFrameResources();
-    void BuildMaterials();
-    void BuildRenderItems();
-    void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
+	void BuildPSOs();
+	void BuildFrameResources();
+	void BuildMaterials();
+	void BuildRenderItems();
+
+	bool CheckCameraCollision(FXMVECTOR predictPos);
+
+	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
 	void CreateItem(const char* item, XMMATRIX p, XMMATRIX q, XMMATRIX r, UINT ObjIndex, const char* material);
 	void CreateItemT(const char* item, XMMATRIX p, XMMATRIX q, XMMATRIX r, UINT ObjIndex, const char* material);
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
-    float GetHillsHeight(float x, float z)const;
-    XMFLOAT3 GetHillsNormal(float x, float z)const;
+	float GetHillsHeight(float x, float z)const;
+	XMFLOAT3 GetHillsNormal(float x, float z)const;
 
 private:
 
-    std::vector<std::unique_ptr<FrameResource>> mFrameResources;
-    FrameResource* mCurrFrameResource = nullptr;
-    int mCurrFrameResourceIndex = 0;
+	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
+	FrameResource* mCurrFrameResource = nullptr;
+	int mCurrFrameResourceIndex = 0;
 
-    UINT mCbvSrvDescriptorSize = 0;
+	UINT mCbvSrvDescriptorSize = 0;
 
-    ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
+	ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
 
 	ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
 
@@ -133,10 +131,10 @@ private:
 	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
 	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
-    std::vector<D3D12_INPUT_ELEMENT_DESC> mStdInputLayout;
+	std::vector<D3D12_INPUT_ELEMENT_DESC> mStdInputLayout;
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mTreeSpriteInputLayout;
 
-    RenderItem* mWavesRitem = nullptr;
+	RenderItem* mWavesRitem = nullptr;
 
 	// List of all the render items.
 	std::vector<std::unique_ptr<RenderItem>> mAllRitems;
@@ -146,65 +144,69 @@ private:
 
 	std::unique_ptr<Waves> mWaves;
 
-    PassConstants mMainPassCB;
-
-	XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
+	PassConstants mMainPassCB;
+	Camera mCamera;
+	float mCameraSpeed = 10.f;
+	BoundingBox mCameraBoundbox;
+	bool mIsWireframe = false;
+	/*XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
 	XMFLOAT4X4 mView = MathHelper::Identity4x4();
 	XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 
-    float mTheta = 1.5f*XM_PI;
-    float mPhi = XM_PIDIV2 - 0.1f;
-    float mRadius = 50.0f;
+	float mTheta = 1.5f*XM_PI;
+	float mPhi = XM_PIDIV2 - 0.1f;
+	float mRadius = 50.0f;*/
 
-    POINT mLastMousePos;
+	POINT mLastMousePos;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
-    PSTR cmdLine, int showCmd)
+	PSTR cmdLine, int showCmd)
 {
-    // Enable run-time memory check for debug builds.
+	// Enable run-time memory check for debug builds.
 #if defined(DEBUG) | defined(_DEBUG)
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    try
-    {
-        TreeBillboardsApp theApp(hInstance);
-        if(!theApp.Initialize())
-            return 0;
+	try
+	{
+		TreeBillboardsApp theApp(hInstance);
+		if (!theApp.Initialize())
+			return 0;
 
-        return theApp.Run();
-    }
-    catch(DxException& e)
-    {
-        MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
-        return 0;
-    }
+		return theApp.Run();
+	}
+	catch (DxException& e)
+	{
+		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
+		return 0;
+	}
 }
 
 TreeBillboardsApp::TreeBillboardsApp(HINSTANCE hInstance)
-    : D3DApp(hInstance)
+	: D3DApp(hInstance)
 {
 }
 
 TreeBillboardsApp::~TreeBillboardsApp()
 {
-    if(md3dDevice != nullptr)
-        FlushCommandQueue();
+	if (md3dDevice != nullptr)
+		FlushCommandQueue();
 }
-void TreeBillboardsApp::CreateItem(const char* item, XMMATRIX p, XMMATRIX q,XMMATRIX r, UINT ObjIndex, const char* material)
+void TreeBillboardsApp::CreateItem(const char* item, XMMATRIX p, XMMATRIX q, XMMATRIX r, UINT ObjIndex, const char* material)
 {
-    auto RightWall = std::make_unique<RenderItem>();
-    XMStoreFloat4x4(&RightWall->World, p * q * r);
-    RightWall->ObjCBIndex = ObjIndex;
-    RightWall->Mat = mMaterials[material].get();// "Wood"
-    RightWall->Geo = mGeometries["boxGeo"].get();
-    
-    RightWall->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    RightWall->IndexCount = RightWall->Geo->DrawArgs[item].IndexCount;
-    RightWall->StartIndexLocation = RightWall->Geo->DrawArgs[item].StartIndexLocation;
-    RightWall->BaseVertexLocation = RightWall->Geo->DrawArgs[item].BaseVertexLocation;
-    //mAllRitems.push_back(std::move(RightWall));
+	auto RightWall = std::make_unique<RenderItem>();
+	XMStoreFloat4x4(&RightWall->World, p * q * r);
+	RightWall->ObjCBIndex = ObjIndex;
+	RightWall->Mat = mMaterials[material].get();//"wirefence"
+	RightWall->Geo = mGeometries["boxGeo"].get();
+
+	RightWall->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	RightWall->Bounds = RightWall->Geo->DrawArgs[item].Bounds;
+	RightWall->IndexCount = RightWall->Geo->DrawArgs[item].IndexCount;
+	RightWall->StartIndexLocation = RightWall->Geo->DrawArgs[item].StartIndexLocation;
+	RightWall->BaseVertexLocation = RightWall->Geo->DrawArgs[item].BaseVertexLocation;
+	//mAllRitems.push_back(std::move(RightWall));
 	mRitemLayer[(int)RenderLayer::Opaque].push_back(RightWall.get());
 	mAllRitems.push_back(std::move(RightWall));
 }
@@ -213,10 +215,11 @@ void TreeBillboardsApp::CreateItemT(const char* item, XMMATRIX p, XMMATRIX q, XM
 	auto RightWall = std::make_unique<RenderItem>();
 	XMStoreFloat4x4(&RightWall->World, p * q * r);
 	RightWall->ObjCBIndex = ObjIndex;
-	RightWall->Mat = mMaterials[material].get();// "Wood"
+	RightWall->Mat = mMaterials[material].get();//"wirefence"
 	RightWall->Geo = mGeometries["boxGeo"].get();
 
 	RightWall->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	RightWall->Bounds = RightWall->Geo->DrawArgs[item].Bounds;
 	RightWall->IndexCount = RightWall->Geo->DrawArgs[item].IndexCount;
 	RightWall->StartIndexLocation = RightWall->Geo->DrawArgs[item].StartIndexLocation;
 	RightWall->BaseVertexLocation = RightWall->Geo->DrawArgs[item].BaseVertexLocation;
@@ -236,7 +239,7 @@ bool TreeBillboardsApp::Initialize()
 	// so we have to query this information.
     mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
+    mWaves = std::make_unique<Waves>(200, 200, 1.0f, 0.03f, 4.0f, 0.2f);
  
 	LoadTextures();
     BuildRootSignature();
@@ -267,8 +270,7 @@ void TreeBillboardsApp::OnResize()
     D3DApp::OnResize();
 
     // The window resized, so update the aspect ratio and recompute the projection matrix.
-    XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f*MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
-    XMStoreFloat4x4(&mProj, P);
+	mCamera.SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
 }
 
 void TreeBillboardsApp::Update(const GameTimer& gt)
@@ -381,54 +383,160 @@ void TreeBillboardsApp::OnMouseUp(WPARAM btnState, int x, int y)
 
 void TreeBillboardsApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
-    if((btnState & MK_LBUTTON) != 0)
-    {
-        // Make each pixel correspond to a quarter of a degree.
-        float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
-        float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
 
-        // Update angles based on input to orbit camera around box.
-        mTheta += dx;
-        mPhi += dy;
+	if ((btnState & MK_LBUTTON) != 0)
+	{
+		// Make each pixel correspond to a quarter of a degree.
+		float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
+		float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
 
-        // Restrict the angle mPhi.
-        mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
-    }
-    else if((btnState & MK_RBUTTON) != 0)
-    {
-        // Make each pixel correspond to 0.2 unit in the scene.
-        float dx = 0.2f*static_cast<float>(x - mLastMousePos.x);
-        float dy = 0.2f*static_cast<float>(y - mLastMousePos.y);
+		// Update angles based on input to orbit camera around box.
+		//mTheta += dx;
+		//mPhi += dy;
 
-        // Update the camera radius based on input.
-        mRadius += dx - dy;
+		// Restrict the angle mPhi.
+		//mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
+		//step4: Instead of updating the angles based on input to orbit camera around scene, 
+		//we rotate the camera’s look direction:
+		mCamera.Pitch(dy);
+		mCamera.RotateY(dx);
 
-        // Restrict the radius.
-        mRadius = MathHelper::Clamp(mRadius, 5.0f, 150.0f);
-    }
+		mLastMousePos.x = x;
+		mLastMousePos.y = y;
+	}
+    //if((btnState & MK_LBUTTON) != 0)
+    //{
+    //    // Make each pixel correspond to a quarter of a degree.
+    //    float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
+    //    float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
 
-    mLastMousePos.x = x;
-    mLastMousePos.y = y;
+    //    // Update angles based on input to orbit camera around box.
+    //    mTheta += dx;
+    //    mPhi += dy;
+
+    //    // Restrict the angle mPhi.
+    //    mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
+    //}
+    //else if((btnState & MK_RBUTTON) != 0)
+    //{
+    //    // Make each pixel correspond to 0.2 unit in the scene.
+    //    float dx = 0.2f*static_cast<float>(x - mLastMousePos.x);
+    //    float dy = 0.2f*static_cast<float>(y - mLastMousePos.y);
+
+    //    // Update the camera radius based on input.
+    //    mRadius += dx - dy;
+
+    //    // Restrict the radius.
+    //    mRadius = MathHelper::Clamp(mRadius, 5.0f, 150.0f);
+    //}
+
+    //mLastMousePos.x = x;
+    //mLastMousePos.y = y;
 }
  
 void TreeBillboardsApp::OnKeyboardInput(const GameTimer& gt)
 {
+	if (GetAsyncKeyState('1') & 0x8000)
+	{
+		mCamera.SetPosition(-5.f, 50.0f, -100.0f);
+	}
+	else if (GetAsyncKeyState('2') & 0x8000)
+	{
+		mCamera.SetPosition(0.f, 10.0f, 100.0f);
+		// Rotate the camera by 90 degrees around the Y axis
+		mCamera.RotateY(XMConvertToRadians(90));
+	}
+	/*if (GetAsyncKeyState('1') & 0x8000)
+		mIsWireframe = true;
+	else
+		mIsWireframe = false;*/
+
+	const float dt = gt.DeltaTime();
+
+	////GetAsyncKeyState returns a short (2 bytes)
+	XMVECTOR predictPos = XMVectorSet(0.f, 0.f, 0.f, 0.f);
+	if (GetAsyncKeyState('W') & 0x8000) //most significant bit (MSB) is 1 when key is pressed (1000 000 000 000)
+	{
+		XMVECTOR s = XMVectorReplicate(mCameraSpeed * dt);
+		predictPos = XMVectorMultiplyAdd(s, mCamera.GetLook(), mCamera.GetPosition());
+
+		if (CheckCameraCollision(predictPos) == false)
+			mCamera.Walk(mCameraSpeed * dt);
+	}
+
+	if (GetAsyncKeyState('S') & 0x8000)
+	{
+		XMVECTOR s = XMVectorReplicate(-mCameraSpeed * dt);
+		predictPos = XMVectorMultiplyAdd(s, mCamera.GetLook(), mCamera.GetPosition());
+
+		if (CheckCameraCollision(predictPos) == false)
+			mCamera.Walk(-mCameraSpeed * dt);
+	}
+
+
+	if (GetAsyncKeyState('A') & 0x8000)
+	{
+		XMVECTOR s = XMVectorReplicate(-mCameraSpeed * dt);
+		predictPos = XMVectorMultiplyAdd(s, mCamera.GetRight(), mCamera.GetPosition());
+
+		if (CheckCameraCollision(predictPos) == false)
+			mCamera.Strafe(-mCameraSpeed * dt);
+
+	}
+
+	if (GetAsyncKeyState('D') & 0x8000)
+	{
+		XMVECTOR s = XMVectorReplicate(mCameraSpeed * dt);
+		predictPos = XMVectorMultiplyAdd(s, mCamera.GetRight(), mCamera.GetPosition());
+
+		if (CheckCameraCollision(predictPos) == false)
+			mCamera.Strafe(mCameraSpeed * dt);
+	}
+
+	//step1
+	if (GetAsyncKeyState(VK_UP) & 0x8000)
+	{
+		XMVECTOR s = XMVectorReplicate(mCameraSpeed * dt);
+		predictPos = XMVectorMultiplyAdd(s, mCamera.GetUp(), mCamera.GetPosition());
+
+		if (CheckCameraCollision(predictPos) == false)
+			mCamera.Pedestal(mCameraSpeed * dt);
+	}
+
+	if (GetAsyncKeyState(VK_DOWN) & 0x8000)
+	{
+		XMVECTOR s = XMVectorReplicate(-mCameraSpeed * dt);
+		predictPos = XMVectorMultiplyAdd(s, mCamera.GetUp(), mCamera.GetPosition());
+
+		if (CheckCameraCollision(predictPos) == false)
+			mCamera.Pedestal(-mCameraSpeed * dt);
+	}
+
+	if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
+		mCamera.Roll(10.0f * dt);
+
+	if (GetAsyncKeyState(VK_LEFT) & 0x8000)
+		mCamera.Roll(-10.0f * dt);
+
+
+	mCamera.UpdateViewMatrix();
+	mCameraBoundbox.Center = mCamera.GetPosition3f();
 }
  
 void TreeBillboardsApp::UpdateCamera(const GameTimer& gt)
 {
-	// Convert Spherical to Cartesian coordinates.
-	mEyePos.x = mRadius*sinf(mPhi)*cosf(mTheta);
-	mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
-	mEyePos.y = mRadius*cosf(mPhi);
+	//// Convert Spherical to Cartesian coordinates.
+	//mEyePos.x = mRadius*sinf(mPhi)*cosf(mTheta);
+	//mEyePos.z = mRadius*sinf(mPhi)*sinf(mTheta);
+	//mEyePos.y = mRadius*cosf(mPhi);
 
-	// Build the view matrix.
-	XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
-	XMVECTOR target = XMVectorZero();
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	//// Build the view matrix.
+	//XMVECTOR pos = XMVectorSet(mEyePos.x, mEyePos.y, mEyePos.z, 1.0f);
+	//XMVECTOR target = XMVectorZero();
+	//XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
-	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-	XMStoreFloat4x4(&mView, view);
+	//XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+	//XMStoreFloat4x4(&mView, view);
 }
 
 void TreeBillboardsApp::AnimateMaterials(const GameTimer& gt)
@@ -507,9 +615,11 @@ void TreeBillboardsApp::UpdateMaterialCBs(const GameTimer& gt)
 
 void TreeBillboardsApp::UpdateMainPassCB(const GameTimer& gt)
 {
-	XMMATRIX view = XMLoadFloat4x4(&mView);
-	XMMATRIX proj = XMLoadFloat4x4(&mProj);
+	//XMMATRIX view = XMLoadFloat4x4(&mView);
+	//XMMATRIX proj = XMLoadFloat4x4(&mProj);
 
+	XMMATRIX view = mCamera.GetView();
+	XMMATRIX proj = mCamera.GetProj();
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
 	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
@@ -521,7 +631,7 @@ void TreeBillboardsApp::UpdateMainPassCB(const GameTimer& gt)
 	XMStoreFloat4x4(&mMainPassCB.InvProj, XMMatrixTranspose(invProj));
 	XMStoreFloat4x4(&mMainPassCB.ViewProj, XMMatrixTranspose(viewProj));
 	XMStoreFloat4x4(&mMainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
-	mMainPassCB.EyePosW = mEyePos;
+	//mMainPassCB.EyePosW = mEyePos;
 
 
 	mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
@@ -884,29 +994,43 @@ void TreeBillboardsApp::BuildShadersAndInputLayouts()
 
 void TreeBillboardsApp::BuildLandGeometry()
 {
-    GeometryGenerator geoGen;
-    GeometryGenerator::MeshData grid = geoGen.CreateGrid(80.0f, 80.0f, 10, 10);
+	GeometryGenerator geoGen;
+	GeometryGenerator::MeshData grid = geoGen.CreateGrid(120.0f, 250.0f, 10, 10);
 
-    //
-    // Extract the vertex elements we are interested and apply the height function to
-    // each vertex.  In addition, color the vertices based on their height so we have
-    // sandy looking beaches, grassy low hills, and snow mountain peaks.
-    //
+	//
+	// Extract the vertex elements we are interested and apply the height function to
+	// each vertex.  In addition, color the vertices based on their height so we have
+	// sandy looking beaches, grassy low hills, and snow mountain peaks.
+	//
 
-    std::vector<Vertex> vertices(grid.Vertices.size());
-    for(size_t i = 0; i < grid.Vertices.size(); ++i)
-    {
-        auto& p = grid.Vertices[i].Position;
-        vertices[i].Pos = p;
+	std::vector<Vertex> vertices(grid.Vertices.size());
+
+	//Calculate Bound Box//step1 
+	XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
+	XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
+
+	XMVECTOR vMin = XMLoadFloat3(&vMinf3);
+	XMVECTOR vMax = XMLoadFloat3(&vMaxf3);
+
+	for (size_t i = 0; i < grid.Vertices.size(); ++i)
+	{
+		auto& p = grid.Vertices[i].Position;
+		vertices[i].Pos = p;
 		vertices[i].Pos.y = 5;// GetHillsHeight(p.x, p.z);
-        vertices[i].Normal = GetHillsNormal(p.x, p.z);
+		vertices[i].Normal = GetHillsNormal(p.x, p.z);
 		vertices[i].TexC = grid.Vertices[i].TexC;
-    }
 
-    const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+		//Calculate Bound Box
+		//step 2
+		XMVECTOR P = XMLoadFloat3(&vertices[i].Pos);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
+	}
 
-    std::vector<std::uint16_t> indices = grid.GetIndices16();
-    const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+
+	std::vector<std::uint16_t> indices = grid.GetIndices16();
+	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 	auto geo = std::make_unique<MeshGeometry>();
 	geo->Name = "landGeo";
@@ -932,6 +1056,13 @@ void TreeBillboardsApp::BuildLandGeometry()
 	submesh.IndexCount = (UINT)indices.size();
 	submesh.StartIndexLocation = 0;
 	submesh.BaseVertexLocation = 0;
+	//Calculate Bound Box
+	//step 3
+	BoundingBox bounds;
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	submesh.Bounds = bounds;
 
 	geo->DrawArgs["grid"] = submesh;
 
@@ -1028,6 +1159,7 @@ void TreeBillboardsApp::BuildBoxGeometry()
 	UINT diamondIndexOffset = wedgeIndexOffset + (UINT)wedge.Indices32.size();
 	UINT triangularPrismIndexOffset = diamondIndexOffset + (UINT)diamond.Indices32.size();
 	UINT torusIndexOffset = triangularPrismIndexOffset + (UINT)triangularPrism.Indices32.size();
+
 	SubmeshGeometry boxSubmesh;
 	boxSubmesh.IndexCount = (UINT)box.Indices32.size();
 	boxSubmesh.StartIndexLocation = boxIndexOffset;
@@ -1086,6 +1218,15 @@ void TreeBillboardsApp::BuildBoxGeometry()
 		torus.Vertices.size();
 
 	std::vector<Vertex> vertices(totalVertexCount);
+
+	//Calculate Bound Box//step1 
+	XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
+	XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
+
+	XMVECTOR vMin = XMLoadFloat3(&vMinf3);
+	XMVECTOR vMax = XMLoadFloat3(&vMaxf3);
+
+
 	UINT k = 0;
 	for (size_t i = 0; i < box.Vertices.size(); ++i, ++k)
 	{
@@ -1093,64 +1234,166 @@ void TreeBillboardsApp::BuildBoxGeometry()
 		vertices[k].Pos = p;
 		vertices[k].Normal = box.Vertices[i].Normal;
 		vertices[k].TexC = box.Vertices[i].TexC;
+
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&box.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+	//step 3
+	BoundingBox bounds;
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	boxSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	for (size_t i = 0; i < sphere.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = sphere.Vertices[i].Position;
 		vertices[k].Normal = sphere.Vertices[i].Normal;
 		vertices[k].TexC = sphere.Vertices[i].TexC;
 		//vertices[k].Color = XMFLOAT4(DirectX::Colors::Crimson);
-	}
 
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&sphere.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
+	}
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	sphereSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	for (size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = cylinder.Vertices[i].Position;
 		vertices[k].Normal = cylinder.Vertices[i].Normal;
 		vertices[k].TexC = cylinder.Vertices[i].TexC;
 		//vertices[k].Color = XMFLOAT4(DirectX::Colors::SteelBlue);
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&cylinder.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	cylinderSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	for (size_t i = 0; i < cone.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = cone.Vertices[i].Position;
 		vertices[k].Normal = cone.Vertices[i].Normal;
 		vertices[k].TexC = cone.Vertices[i].TexC;
 		// vertices[k].Color = XMFLOAT4(DirectX::Colors::Blue);
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&cone.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	coneSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	for (size_t i = 0; i < pyramid.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = pyramid.Vertices[i].Position;
 		vertices[k].Normal = pyramid.Vertices[i].Normal;
 		vertices[k].TexC = pyramid.Vertices[i].TexC;
 		// vertices[k].Color = XMFLOAT4(DirectX::Colors::Blue);
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&pyramid.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	pyramidSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	for (size_t i = 0; i < wedge.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = wedge.Vertices[i].Position;
 		vertices[k].Normal = wedge.Vertices[i].Normal;
 		vertices[k].TexC = wedge.Vertices[i].TexC;
 		// vertices[k].Color = XMFLOAT4(DirectX::Colors::Blue);
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&wedge.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	wedgeSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	for (size_t i = 0; i < diamond.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = diamond.Vertices[i].Position;
 		vertices[k].Normal = diamond.Vertices[i].Normal;
 		vertices[k].TexC = diamond.Vertices[i].TexC;
 		// vertices[k].Color = XMFLOAT4(DirectX::Colors::Blue);
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&diamond.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	diamondSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	for (size_t i = 0; i < triangularPrism.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = triangularPrism.Vertices[i].Position;
 		vertices[k].Normal = triangularPrism.Vertices[i].Normal;
 		vertices[k].TexC = triangularPrism.Vertices[i].TexC;
 		// vertices[k].Color = XMFLOAT4(DirectX::Colors::Blue);
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&triangularPrism.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	triangularPrismSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	for (size_t i = 0; i < torus.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = torus.Vertices[i].Position;
 		vertices[k].Normal = torus.Vertices[i].Normal;
 		vertices[k].TexC = torus.Vertices[i].TexC;
 		// vertices[k].Color = XMFLOAT4(DirectX::Colors::Blue);
+		// Calculate Bound Box
+			//step 2
+		XMVECTOR P = XMLoadFloat3(&torus.Vertices[i].Position);
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+	//step 4
+	torusSubmesh.Bounds = bounds;
+	vMin = XMLoadFloat3(&vMinf3);
+	vMax = XMLoadFloat3(&vMaxf3);
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
 
@@ -1192,7 +1435,8 @@ void TreeBillboardsApp::BuildBoxGeometry()
 	//submesh.StartIndexLocation = 0;
 	//submesh.BaseVertexLocation = 0; 
 
-		geo->DrawArgs["box"] = boxSubmesh;
+
+	geo->DrawArgs["box"] = boxSubmesh;
 
 	geo->DrawArgs["sphere"] = sphereSubmesh;
 	geo->DrawArgs["cylinder"] = cylinderSubmesh;
@@ -1638,6 +1882,83 @@ void TreeBillboardsApp::BuildRenderItems()
 	objCBIndex++;
 
 
+	////start Wood
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(12.0f, 10.0f, 55.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//back wall
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(-12.0f, 10.0f, 55.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//front wall
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(12.0f, 10.0f, 20.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//back wall
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(-12.0f, 10.0f, 20.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//front wall
+	objCBIndex++;
+
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 23.0f), XMMatrixTranslation(20.6f, 10.0f, 38.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//Right wall
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 23.0f), XMMatrixTranslation(-20.6f, 10.0f, 38.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//Left wall
+	objCBIndex++;
+
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 25.0f), XMMatrixTranslation(20.6f, 10.0f, 75.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//Right wall
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 25.0f), XMMatrixTranslation(-20.6f, 10.0f, 75.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//Left wall
+	objCBIndex++;
+
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(-12.0f, 10.0f, 94.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//front wall
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(12.0f, 10.0f, 94.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");//front wall
+	objCBIndex++;
+
+	////inner Wood
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 19.5f), XMMatrixTranslation(-12.6f, 10.0f, 34.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 5.0f), XMMatrixTranslation(3.4f, 10.0f, 51.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 3.0f), XMMatrixTranslation(-5.6f, 10.0f, 45.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(3.5f, 10.0f, 47.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(-4.0f, 10.0f, 36.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	///*CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(6.0f, 10.0f, 31.8f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	//objCBIndex++;*/
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 3.0f), XMMatrixTranslation(4.6f, 10.0f, 38.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	////CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 6.5f), XMMatrixTranslation(14.4f, 10.0f, 35.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	////objCBIndex++;
+	CreateItem("box", XMMatrixScaling(6.0f, 1.0f, .5f), XMMatrixTranslation(9.5f, 10.0f, 40.7f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 19.5f), XMMatrixTranslation(-12.6f, 10.0f, 69.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 5.0f), XMMatrixTranslation(3.4f, 10.0f, 81.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 3.0f), XMMatrixTranslation(-5.6f, 10.0f, 75.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(3.5f, 10.0f, 77.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(-4.0f, 10.0f, 66.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 3.0f), XMMatrixTranslation(4.6f, 10.0f, 68.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(6.0f, 1.0f, .5f), XMMatrixTranslation(9.5f, 10.0f, 70.7f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 19.5f), XMMatrixTranslation(-12.6f, 10.0f, 69.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 5.0f), XMMatrixTranslation(3.4f, 10.0f, 81.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 3.0f), XMMatrixTranslation(-5.6f, 10.0f, 75.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(3.5f, 10.0f, 77.0f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(12.0f, 1.0f, .5f), XMMatrixTranslation(-4.0f, 10.0f, 66.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(0.5f, 1.0f, 3.0f), XMMatrixTranslation(4.6f, 10.0f, 68.5f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+	CreateItem("box", XMMatrixScaling(6.0f, 1.0f, .5f), XMMatrixTranslation(9.5f, 10.0f, 70.7f), XMMatrixRotationRollPitchYaw(0.f, 0.f, 0.f), objCBIndex, "Wood");
+	objCBIndex++;
+
+
+
 
 
 	auto treeSpritesRitem = std::make_unique<RenderItem>();
@@ -1657,6 +1978,31 @@ void TreeBillboardsApp::BuildRenderItems()
     mAllRitems.push_back(std::move(gridRitem));
 	//mAllRitems.push_back(std::move(boxRitem));
 	mAllRitems.push_back(std::move(treeSpritesRitem));
+}
+
+bool TreeBillboardsApp::CheckCameraCollision(FXMVECTOR predictPos)
+{
+	for (auto ri : mRitemLayer[(int)RenderLayer::Opaque])
+	{
+		BoundingBox tempCameraBound;
+		XMStoreFloat3(&tempCameraBound.Center, predictPos);
+		tempCameraBound.Extents = mCameraBoundbox.Extents;
+
+
+		BoundingBox localCameraBound;
+
+		XMMATRIX W = XMLoadFloat4x4(&ri->World);
+		XMMATRIX invWorld = XMMatrixInverse(&XMMatrixDeterminant(W), W);
+
+		tempCameraBound.Transform(localCameraBound, invWorld);
+
+		if (ri->Bounds.Intersects(localCameraBound))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void TreeBillboardsApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems)
@@ -1760,7 +2106,7 @@ XMFLOAT3 TreeBillboardsApp::GetHillsNormal(float x, float z)const
         -0.03f*z*cosf(0.1f*x) - 0.3f*cosf(0.1f*z),
         1.0f,
         -0.3f*sinf(0.1f*x) + 0.03f*x*sinf(0.1f*z));
-
+	 
     XMVECTOR unitNormal = XMVector3Normalize(XMLoadFloat3(&n));
     XMStoreFloat3(&n, unitNormal);
 
